@@ -1,0 +1,61 @@
+rankhospital<-function(state, outcome, num="best")
+{
+  ## Best just means first position in an ordered list
+  if (num=="best")
+  {
+    num=1
+  }
+  
+  ## Reading data
+  data <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
+  
+  ## Checking that state and outcome are valid
+  possibleOutcomes <- c("heart attack", "heart failure", "pneumonia")
+  if (!is.character(state) || !(state %in% data$State))
+  {
+    stop("invalid state")
+  }
+  if (!is.character(outcome) || !(outcome %in% possibleOutcomes))
+  {
+    stop("invalid outcome")
+  }
+  
+  ## Clean the data for future usage
+  ## First get the column necessary for the outcome we are interested (along with hospital name and state)
+  if (outcome=="heart attack") outcomeColumn=11
+  else if (outcome=="heart failure") outcomeColumn=17
+  else outcomeColumn=23
+  data <- data[,c(2,7,outcomeColumn)]
+  colnames(data) <- c("Hospital.Name", "State", outcome)
+  
+  ## Then only keep data from the state we're interested in, and ensure our data is in numerical form
+  data <- data[data[,"State"]==state,]
+  suppressWarnings(data[,outcome]<-as.numeric(data[,outcome]))
+  
+  ## Check if we have the necessary info and return the "num" hospital when ordered by rank, then hospital name
+  if(all(is.na(data[,outcome])))
+  {
+    stop("Hospitals in this state have no data for this outcome")
+  }
+  else
+  {
+    data <- data[order(data[,outcome], data[,"Hospital.Name"]),]
+    data <- data[complete.cases(data),]
+    
+    ## "worst" is the last number in an ordered list (once we excluded incomplete cases)
+    if (num=="worst")
+    {
+      num=nrow(data)
+    }
+    
+    ## Mission requests to return NA if the required rank is higher than the last complete cases element
+    if (nrow(data)<num)
+    {
+      return(NA)
+    }
+    else
+    {
+      data[num, "Hospital.Name"]
+    }
+  }
+}
